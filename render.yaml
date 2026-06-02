@@ -1,0 +1,34 @@
+# Render.com Blueprint — backend'ni bepul doimiy URL bilan deploy qiladi.
+# https://render.com → New → Blueprint → bu repo'ni tanlang.
+services:
+  - type: web
+    name: aqllishahar-backend
+    runtime: node
+    plan: free                      # bepul tier (15 daqiqa jimlikdan keyin uxlaydi)
+    region: frankfurt               # O'zbekistonga eng yaqin Render regioni
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # MongoDB Atlas connection string — Render dashboard'da QO'LDA kiritiladi (sir).
+      - key: MONGODB_URI
+        sync: false
+      # JWT maxfiy kaliti — Render avtomatik xavfsiz generatsiya qiladi.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      # GPS toleransiyalar (metr) — real foydalanish qiymatlari.
+      # Demo/test qiyin bo'lsa, Render dashboard'dan vaqtincha oshiring (masalan 50 / 100).
+      - key: GPS_POINT_TOLERANCE_M
+        value: "2"
+      - key: GPS_HUDUD_TOLERANCE_M
+        value: "10"
+      - key: POINT_DENSITY_PER_SQM
+        value: "250"
+      - key: POINT_MIN_SPACING_M
+        value: "12"
+      - key: CORS_ORIGIN
+        value: "*"

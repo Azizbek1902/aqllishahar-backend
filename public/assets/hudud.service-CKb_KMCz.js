@@ -1,0 +1,1 @@
+import{f as a}from"./index-CTugDpeh.js";async function d(t){return(await a.get("/hududs",{params:t})).data}async function e(t){return(await a.get(`/hududs/${t}`)).data}async function n(t){return(await a.post("/hududs",t)).data}async function r(t){await a.delete(`/hududs/${t}`)}export{n as c,r as d,e as g,d as l};
