@@ -46,7 +46,7 @@ const PARAMETERS = ['moisture', 'temperature', 'nitrogen', 'phosphorus', 'potass
  */
 export const ingest = asyncHandler(async (req, res) => {
   const apiKey = req.headers['x-sensor-key'] || req.body.apiKey;
-  const { serialNumber, pointId, gpsLat, gpsLng, battery, signal } = req.body;
+  const { serialNumber, pointId, gpsLat, gpsLng, gpsAccuracy, battery, signal } = req.body;
 
   if (!serialNumber || !apiKey) {
     throw new ApiError(400, 'error.missingFields', 'serialNumber and apiKey are required');
@@ -90,7 +90,9 @@ export const ingest = asyncHandler(async (req, res) => {
   if (!visit) throw new ApiError(403, 'ingest.error.noActiveVisit',
     'Bu hududga active visit yo\'q — avval "Keldim" tugmasini bosing');
 
-  /* 4. GPS tekshiruvi — nuqtadan ≤ tolerance metr */
+  /* 4. GPS tekshiruvi — nuqtadan ≤ tolerance metr (QAT'IY radius).
+   * Aniqlik buferi olib tashlandi — foydalanuvchi aynan nuqta radiusi ichida
+   * bo'lishi kerak (mijoz talabi). gpsAccuracy faqat audit uchun saqlanadi. */
   const toleranceM = point.hudud.pointToleranceM ?? env.GPS_POINT_TOLERANCE_M;
   const distM = distanceMeters(gpsLat, gpsLng, point.lat, point.lng);
   if (distM > toleranceM) {

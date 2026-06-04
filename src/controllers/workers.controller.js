@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { User } from '../models/User.js';
 import { Hudud } from '../models/Hudud.js';
 import { Device } from '../models/Device.js';
+import { Visit } from '../models/Visit.js';
 import { Log } from '../models/Log.js';
 import { ApiError, asyncHandler } from '../middleware/error.middleware.js';
 import { regexEscape } from '../utils/regexEscape.js';
@@ -130,11 +131,24 @@ export const update = asyncHandler(async (req, res) => {
   if (req.body.tumanId   !== undefined) worker.tuman   = req.body.tumanId   || null;
   if (req.body.isActive  !== undefined) worker.isActive = req.body.isActive;
   if (req.body.assignedHududIds !== undefined) {
-    if (req.body.assignedHududIds.length) {
-      const found = await Hudud.countDocuments({ _id: { $in: req.body.assignedHududIds } });
-      if (found !== req.body.assignedHududIds.length) throw new ApiError(400, 'hudud.error.notFound');
+    const newIds = req.body.assignedHududIds.map(String);
+    if (newIds.length) {
+      const found = await Hudud.countDocuments({ _id: { $in: newIds } });
+      if (found !== newIds.length) throw new ApiError(400, 'hudud.error.notFound');
     }
-    worker.assignedHududs = req.body.assignedHududIds;
+    // OLIB TASHLANGAN hududlar — ularning ochiq (active) tashrifini bekor qilamiz,
+    // aks holda ishchining mobilida "Faol tashrif" osilib qolardi.
+    // Nuqta statuslari (done/pending) saqlanadi — hudud boshqa ishchiga berilsa,
+    // u faqat qolgan (pending) nuqtalardan data oladi.
+    const oldIds = (worker.assignedHududs ?? []).map((h) => String(h));
+    const removed = oldIds.filter((id) => !newIds.includes(id));
+    if (removed.length) {
+      await Visit.updateMany(
+        { worker: worker._id, hudud: { $in: removed }, status: 'active' },
+        { status: 'cancelled', completedAt: new Date() },
+      );
+    }
+    worker.assignedHududs = newIds;
   }
   if (req.body.password) await worker.setPassword(req.body.password);
   await worker.save();

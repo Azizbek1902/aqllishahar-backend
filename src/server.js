@@ -3,6 +3,7 @@ import { env } from './config/env.js';
 import { connectDB } from './config/db.js';
 import { app } from './app.js';
 import { startOfflineChecker } from './jobs/offlineChecker.js';
+import { startDailyReset } from './jobs/dailyReset.js';
 
 async function start() {
   await connectDB();
@@ -13,6 +14,7 @@ async function start() {
     console.log(`  Env: ${env.NODE_ENV}`);
   });
   startOfflineChecker();
+  startDailyReset();
 }
 
 start();
