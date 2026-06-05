@@ -31,11 +31,14 @@ const visitSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Bitta worker bir vaqtning o'zida faqat 1 ta active visit qila oladi.
-// Partial index — faqat status='active' bo'lganlar uchun unique
+// Ishchi BIR HUDUD uchun faqat 1 ta active visit'ga ega bo'la oladi.
+// Lekin har xil hududlar uchun bir necha active visit'i bo'lishi mumkin —
+// foydalanuvchi bitta hududni tugatmasdan boshqasiga borishi mumkin.
 visitSchema.index(
-  { worker: 1 },
+  { worker: 1, hudud: 1 },
   { unique: true, partialFilterExpression: { status: 'active' } }
 );
+// Tezroq qidiruv uchun
+visitSchema.index({ worker: 1, status: 1 });
 
 export const Visit = mongoose.model('Visit', visitSchema);

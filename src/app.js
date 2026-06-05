@@ -28,6 +28,7 @@ import dashboardRoutes from './routes/dashboard.routes.js';
 import logsRoutes from './routes/logs.routes.js';
 import ingestRoutes from './routes/ingest.routes.js';
 import deviceModelsRoutes from './routes/deviceModels.routes.js';
+import pointsRoutes from './routes/points.routes.js';
 
 export const app = express();
 
@@ -130,6 +131,7 @@ app.use('/api/alerts',  alertsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/device-models', deviceModelsRoutes);
+app.use('/api/points', pointsRoutes);
 
 /* ── Static frontend (production) ─────────────────────────────────── */
 const PUBLIC_DIR = path.join(__dirname, '../public');

@@ -67,7 +67,8 @@ export const myAssignments = asyncHandler(async (req, res) => {
 /**
  * POST /api/visits/start — "Keldim" bosilganda.
  *  - GPS ni tekshirib, hudud chegarasidan ≤ hududToleranceM ekanligiga ishonch hosil qilamiz
- *  - Bitta ishchining 1 ta active visit'i bo'lishi mumkin (boshqasi bo'lsa rad etiladi)
+ *  - Ishchi bir paytda bir necha active visit'ga ega bo'lishi mumkin (har xil hudud uchun).
+ *    Faqat bir hudud uchun 2 ta active visit yo'q (eski qaytaradi).
  */
 export const start = asyncHandler(async (req, res) => {
   if (req.user.role !== 'ishchi') throw new ApiError(403, 'error.forbidden');
@@ -80,11 +81,17 @@ export const start = asyncHandler(async (req, res) => {
   const allowed = (me?.assignedHududs ?? []).some((id) => id.toString() === hududId);
   if (!allowed) throw new ApiError(403, 'visit.error.notAssigned', "Bu hudud sizga biriktirilmagan");
 
-  // Active visit bormi?
-  const existing = await Visit.findOne({ worker: req.user._id, status: 'active' });
-  if (existing) {
-    throw new ApiError(409, 'visit.error.alreadyActive',
-      "Sizda hali ochiq tashrif bor — avval uni tugating");
+  // Aynan SHU hudud uchun active visit bormi? — bo'lsa eskisini qaytaramiz (yangi yaratmaymiz)
+  const sameActive = await Visit.findOne({ worker: req.user._id, hudud: hududId, status: 'active' });
+  if (sameActive) {
+    const hudud = await Hudud.findById(hududId).lean();
+    const points = await Point.find({ hudud: hududId }).sort('order').lean();
+    return res.json({
+      visit: serialize(sameActive.toObject()),
+      hudud: serialize(hudud),
+      points: serialize(points),
+      config: { pointToleranceM: env.GPS_POINT_TOLERANCE_M, hududToleranceM: env.GPS_HUDUD_TOLERANCE_M },
+    });
   }
 
   const hudud = await Hudud.findById(hududId).lean();
@@ -132,7 +139,13 @@ export const start = asyncHandler(async (req, res) => {
 /** Active visit holatini olish (ishchi yangi sessiya boshlasa) */
 export const getActive = asyncHandler(async (req, res) => {
   if (req.user.role !== 'ishchi') throw new ApiError(403, 'error.forbidden');
-  const visit = await Visit.findOne({ worker: req.user._id, status: 'active' })
+  // hududId berilgan bo'lsa — aynan shu hudud uchun active visit (multi-visit qo'llab-quvvatlash)
+  const filter = { worker: req.user._id, status: 'active' };
+  if (req.query.hududId && mongoose.isValidObjectId(req.query.hududId)) {
+    filter.hudud = req.query.hududId;
+  }
+  const visit = await Visit.findOne(filter)
+    .sort('-startedAt') // hududId berilmasa eng so'nggini olamiz
     .populate({ path: 'hudud', populate: { path: 'mfy' } })
     .lean();
   if (!visit) return res.json({ visit: null });
