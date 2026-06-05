@@ -121,8 +121,17 @@ function generateHududPolygonInside(mfy, halfSizeM = 30) {
 }
 
 /* ── Asosiy seed funktsiyasi ───────────────────────────────────────────── */
+// Eksport — admin seed endpoint orqali ham chaqirilishi uchun
+export async function runSeed({ skipConnect = false } = {}) {
+  return runInternal({ skipConnect });
+}
+
 async function run() {
-  await connectDB();
+  return runInternal({ skipConnect: false });
+}
+
+async function runInternal({ skipConnect }) {
+  if (!skipConnect) await connectDB();
   console.log('✓ MongoDB ulanish OK\n');
 
   console.log('🗑  Eski DB to\'liq tozalanyapti (kolleksiyalar + indekslar)...');
@@ -301,8 +310,12 @@ async function run() {
   console.log("  ishchi2 / ishchi123    (mobile)");
   console.log('═══════════════════════════════════════════\n');
 
-  await mongoose.disconnect();
-  process.exit(0);
+  // Endpoint orqali chaqirilsa — disconnect/exit qilmaymiz (server ishlashda davom etadi)
+  if (!skipConnect) {
+    await mongoose.disconnect();
+    process.exit(0);
+  }
+  return { hududs: createdHududs.length, points: await Point.countDocuments() };
 }
 
 function pickRandom(arr, n) {

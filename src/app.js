@@ -93,6 +93,29 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, env: env.NODE_ENV, time: new Date().toISOString() });
 });
 
+/**
+ * Vaqtinchalik seed endpoint — Atlas'ni bir martalik to'ldirish uchun.
+ * SEED_TOKEN env bo'lsa, faqat shu token bilan ishlaydi.
+ * Seed bo'lgach SEED_TOKEN ni Render'dan o'chirib, bu endpoint avtomatik o'chiriladi.
+ */
+app.post('/api/admin/seed', async (req, res) => {
+  const token = req.headers['x-seed-token'];
+  if (!process.env.SEED_TOKEN) {
+    return res.status(403).json({ error: { message: 'Seed disabled (SEED_TOKEN o\'chirilgan)' } });
+  }
+  if (token !== process.env.SEED_TOKEN) {
+    return res.status(401).json({ error: { message: 'Invalid seed token' } });
+  }
+  try {
+    const { runSeed } = await import('./seed/seed.js');
+    const result = await runSeed({ skipConnect: true });
+    res.json({ ok: true, result, login: { admin: 'admin/admin123', ishchi1: 'ishchi1/ishchi123' } });
+  } catch (err) {
+    console.error('SEED endpoint xato:', err);
+    res.status(500).json({ error: { message: err.message } });
+  }
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/viloyatlar', viloyatlarRoutes);
