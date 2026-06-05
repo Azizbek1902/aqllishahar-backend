@@ -41,4 +41,5 @@ visitSchema.index(
 // Tezroq qidiruv uchun
 visitSchema.index({ worker: 1, status: 1 });
 
+
 export const Visit = mongoose.model('Visit', visitSchema);
