@@ -23,12 +23,12 @@ services:
       # GPS toleransiyalar (metr) — real foydalanish qiymatlari.
       # Demo/test qiyin bo'lsa, Render dashboard'dan vaqtincha oshiring (masalan 50 / 100).
       - key: GPS_POINT_TOLERANCE_M
-        value: "2"
+        value: "5"
       - key: GPS_HUDUD_TOLERANCE_M
         value: "10"
       - key: POINT_DENSITY_PER_SQM
         value: "250"
       - key: POINT_MIN_SPACING_M
-        value: "12"
+        value: "10"
       - key: CORS_ORIGIN
         value: "*"
