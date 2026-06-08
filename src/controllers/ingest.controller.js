@@ -90,14 +90,17 @@ export const ingest = asyncHandler(async (req, res) => {
   if (!visit) throw new ApiError(403, 'ingest.error.noActiveVisit',
     'Bu hududga active visit yo\'q — avval "Keldim" tugmasini bosing');
 
-  /* 4. GPS tekshiruvi — nuqtadan ≤ tolerance metr (QAT'IY radius).
-   * Aniqlik buferi olib tashlandi — foydalanuvchi aynan nuqta radiusi ichida
-   * bo'lishi kerak (mijoz talabi). gpsAccuracy faqat audit uchun saqlanadi. */
-  const toleranceM = point.hudud.pointToleranceM ?? env.GPS_POINT_TOLERANCE_M;
+  /* 4. GPS tekshiruvi — adaptive tolerance.
+   * Formula: effectiveTolerance = max(belgilangan tolerance, gpsAccuracy)
+   * Ochiq joyda GPS ±3m → 5m tolerance qattiq.
+   * Yopiq joyda GPS ±20m → 20m tolerance — fizikan adolatli. */
+  const baseTolerance = point.hudud.pointToleranceM ?? env.GPS_POINT_TOLERANCE_M;
+  const acc = Number(req.body.gpsAccuracy);
+  const effectiveTolerance = (Number.isFinite(acc) && acc > baseTolerance) ? acc : baseTolerance;
   const distM = distanceMeters(gpsLat, gpsLng, point.lat, point.lng);
-  if (distM > toleranceM) {
+  if (distM > effectiveTolerance) {
     throw new ApiError(403, 'ingest.error.tooFarFromPoint',
-      `Nuqtadan ${distM.toFixed(1)} m uzoqdasiz (limit ${toleranceM} m)`);
+      `Nuqtadan ${distM.toFixed(1)} m uzoqdasiz (limit ${effectiveTolerance.toFixed(1)} m)`);
   }
 
   /* 5. fieldMap orqali parametrlarni o'qiymiz */

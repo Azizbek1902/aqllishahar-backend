@@ -15,9 +15,10 @@ import { serialize } from '../utils/serialize.js';
  */
 
 export const startVisitSchema = Joi.object({
-  hududId: Joi.string().hex().length(24).required(),
-  lat:     Joi.number().required(),
-  lng:     Joi.number().required(),
+  hududId:     Joi.string().hex().length(24).required(),
+  lat:         Joi.number().required(),
+  lng:         Joi.number().required(),
+  gpsAccuracy: Joi.number().min(0).max(200).optional(),
 });
 
 /** GET /api/visits/my — ishchining biriktirilgan hududlari + active visit */
@@ -73,7 +74,7 @@ export const myAssignments = asyncHandler(async (req, res) => {
 export const start = asyncHandler(async (req, res) => {
   if (req.user.role !== 'ishchi') throw new ApiError(403, 'error.forbidden');
 
-  const { hududId, lat, lng } = req.body;
+  const { hududId, lat, lng, gpsAccuracy } = req.body;
   if (!mongoose.isValidObjectId(hududId)) throw new ApiError(404, 'error.notFound');
 
   // Ishchi shu hududga biriktirilganmi?
@@ -101,14 +102,17 @@ export const start = asyncHandler(async (req, res) => {
   }
 
   // GPS check 1: ishchi hudud ichida yoki yaqinida (≤ tolerance metr) bo'lishi kerak
-  const toleranceM = hudud.hududToleranceM ?? env.GPS_HUDUD_TOLERANCE_M;
+  // Adaptive tolerance — GPS aniqligi yomon bo'lsa kengaytiramiz
+  const baseTolerance = hudud.hududToleranceM ?? env.GPS_HUDUD_TOLERANCE_M;
+  const acc = Number(gpsAccuracy);
+  const toleranceM = (Number.isFinite(acc) && acc > baseTolerance) ? acc : baseTolerance;
   const inside = pointInPolygon(lat, lng, hudud.polygon);
   if (!inside) {
     // Polygon ichida bo'lmasa — eng yaqin chetidan masofani tekshiramiz
     const minDist = nearestEdgeDistance(lat, lng, hudud.polygon);
     if (minDist > toleranceM) {
       throw new ApiError(403, 'visit.error.tooFar',
-        `Hudud chegarasidan ${Math.round(minDist)} m uzoqdasiz (limit ${toleranceM} m)`);
+        `Hudud chegarasidan ${Math.round(minDist)} m uzoqdasiz (limit ${toleranceM.toFixed(1)} m)`);
     }
   }
 
