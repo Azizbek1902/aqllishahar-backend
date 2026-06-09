@@ -73,6 +73,12 @@ export const ingest = asyncHandler(async (req, res) => {
     'Device is not assigned to any worker');
   if (!device.isActive)      throw new ApiError(403, 'device.error.inactive', 'Device is inactive');
 
+  /* 1b. User-Device mosligi — JWT'дagi ishchи AYNAN shu qurilmaga biriktirilganmi? */
+  if (device.assignedTo.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, 'ingest.error.notYourDevice',
+      'Bu qurilma sizgа biriktirilmagan');
+  }
+
   /* 2. Point va Hudud */
   const point = await Point.findById(pointId).populate('hudud').lean();
   if (!point) throw new ApiError(404, 'ingest.error.pointNotFound');
