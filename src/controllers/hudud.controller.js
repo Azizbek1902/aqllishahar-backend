@@ -57,7 +57,10 @@ export const list = asyncHandler(async (req, res) => {
     filter.mfy = { $in: mfys.map((m) => m._id) };
   }
 
-  const hududs = await Hudud.find(filter, { polygon: 0 })
+  // Xarita polygon chizishi uchun ?withPolygon=1 bilan polygon ham qaytariladi.
+  // Oddiy ro'yxat sahifalari uchun polygon kerak emas (yengilroq javob).
+  const projection = req.query.withPolygon ? {} : { polygon: 0 };
+  const hududs = await Hudud.find(filter, projection)
     .populate('mfy', 'nameUz nameRu nameEn code')
     .sort('-createdAt')
     .lean();
