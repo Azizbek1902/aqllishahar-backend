@@ -328,7 +328,14 @@ function pickRandom(arr, n) {
   return out;
 }
 
-run().catch((err) => {
-  console.error('SEED XATO:', err);
-  process.exit(1);
-});
+// MUHIM: top-level run() FAQAT fayl to'g'ridan-to'g'ri ishga tushganda (`npm run seed`)
+// bajariladi. Boshqa modul (masalan admin.routes.js) bu faylni import qilsa,
+// run() ishlamaydi — aks holda server boot'da DB tozalanib process.exit bo'lardi
+// va Render deploy fail bo'lardi.
+const isDirectRun = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+if (isDirectRun) {
+  run().catch((err) => {
+    console.error('SEED XATO:', err);
+    process.exit(1);
+  });
+}
