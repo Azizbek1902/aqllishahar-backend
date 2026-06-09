@@ -21,6 +21,9 @@ async function assertHududScope(req, hududId) {
     .populate({ path: 'mfy', select: 'tuman', populate: { path: 'tuman', select: 'viloyat' } })
     .lean();
   const vil = hudud?.mfy?.tuman?.viloyat;
+  // MVP: MFY.tuman=null bo'lsa zanjir uzilgan — bitta viloyat (Farg'ona), ruxsat beramiz.
+  // Zanjir bog'langanda (kelajak multi-viloyat) — qat'iy tekshiramiz.
+  if (vil == null) return;
   if (!viloyatMatches(req, vil)) throw new ApiError(404, 'error.notFound');
 }
 
@@ -34,7 +37,13 @@ async function getScopedActiveHududs(req, extraFilter = {}) {
     .select('nameUz nameRu nameEn mfy category')
     .lean();
   if (req.user.role !== 'rahbar') return hududs;
-  return hududs.filter((h) => viloyatMatches(req, h?.mfy?.tuman?.viloyat));
+  return hududs.filter((h) => {
+    const vil = h?.mfy?.tuman?.viloyat;
+    // MVP: zanjir uzilgan (tuman=null) → bitta viloyat, ko'rsatamiz.
+    // Bog'langan bo'lsa — qat'iy viloyat tekshiruvi.
+    if (vil == null) return true;
+    return viloyatMatches(req, vil);
+  });
 }
 
 /** Reading'dagi 7 parametr ichidan eng yomon (dominant) holatni topadi. */
