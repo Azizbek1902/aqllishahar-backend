@@ -19,6 +19,9 @@ export const env = {
   // GPS toleransiyalar (metr) — mobile ingest paytida tekshiriladi
   GPS_POINT_TOLERANCE_M: Number(process.env.GPS_POINT_TOLERANCE_M) || 5,
   GPS_HUDUD_TOLERANCE_M: Number(process.env.GPS_HUDUD_TOLERANCE_M) || 10,
+  // Adaptive tolerance ustki cheklovi — GPS yomon bo'lsa zona shu qiymatdan oshmaydi
+  GPS_POINT_TOLERANCE_MAX_M: Number(process.env.GPS_POINT_TOLERANCE_MAX_M) || 12,
+  GPS_HUDUD_TOLERANCE_MAX_M: Number(process.env.GPS_HUDUD_TOLERANCE_MAX_M) || 20,
   // Avto-nuqta generatsiya
   POINT_DENSITY_PER_SQM: Number(process.env.POINT_DENSITY_PER_SQM) || 250,
   POINT_MIN_SPACING_M:   Number(process.env.POINT_MIN_SPACING_M)   || 10,

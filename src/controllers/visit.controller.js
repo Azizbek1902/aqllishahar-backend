@@ -102,10 +102,11 @@ export const start = asyncHandler(async (req, res) => {
   }
 
   // GPS check 1: ishchi hudud ichida yoki yaqinida (≤ tolerance metr) bo'lishi kerak
-  // Adaptive tolerance — GPS aniqligi yomon bo'lsa kengaytiramiz
+  // Adaptive tolerance (CAP bilan): max(belgilangan, min(gpsAccuracy, CAP))
   const baseTolerance = hudud.hududToleranceM ?? env.GPS_HUDUD_TOLERANCE_M;
   const acc = Number(gpsAccuracy);
-  const toleranceM = (Number.isFinite(acc) && acc > baseTolerance) ? acc : baseTolerance;
+  const expanded = Number.isFinite(acc) ? Math.min(acc, env.GPS_HUDUD_TOLERANCE_MAX_M) : 0;
+  const toleranceM = Math.max(baseTolerance, expanded);
   const inside = pointInPolygon(lat, lng, hudud.polygon);
   if (!inside) {
     // Polygon ichida bo'lmasa — eng yaqin chetidan masofani tekshiramiz

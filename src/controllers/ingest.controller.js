@@ -98,13 +98,13 @@ export const ingest = asyncHandler(async (req, res) => {
   if (!visit) throw new ApiError(403, 'ingest.error.noActiveVisit',
     'Bu hududga active visit yo\'q — avval "Keldim" tugmasini bosing');
 
-  /* 4. GPS tekshiruvi — adaptive tolerance.
-   * Formula: effectiveTolerance = max(belgilangan tolerance, gpsAccuracy)
-   * Ochiq joyda GPS ±3m → 5m tolerance qattiq.
-   * Yopiq joyda GPS ±20m → 20m tolerance — fizikan adolatli. */
+  /* 4. GPS tekshiruvi — adaptive tolerance (CAP bilan).
+   * Formula: max(belgilangan_tolerance, min(gpsAccuracy, CAP))
+   * Ochiq joyda GPS ±3m → 5m qattiq. Yopiq joyda GPS ±20m → 12m'da to'xtaydi (cheksiz emas). */
   const baseTolerance = point.hudud.pointToleranceM ?? env.GPS_POINT_TOLERANCE_M;
   const acc = Number(req.body.gpsAccuracy);
-  const effectiveTolerance = (Number.isFinite(acc) && acc > baseTolerance) ? acc : baseTolerance;
+  const expanded = Number.isFinite(acc) ? Math.min(acc, env.GPS_POINT_TOLERANCE_MAX_M) : 0;
+  const effectiveTolerance = Math.max(baseTolerance, expanded);
   const distM = distanceMeters(gpsLat, gpsLng, point.lat, point.lng);
   if (distM > effectiveTolerance) {
     throw new ApiError(403, 'ingest.error.tooFarFromPoint',
