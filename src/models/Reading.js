@@ -28,6 +28,10 @@ const readingSchema = new mongoose.Schema(
     // Ishchi yuborgan paytdagi GPS — point bilan solishtirib tekshiriladi
     gpsLat: { type: Number, required: true },
     gpsLng: { type: Number, required: true },
+    // GPS aniqligi (metr) — audit uchun: ishchi qanchalik aniq joyda turgan
+    gpsAccuracy: { type: Number, default: null },
+    // Manba: 'device' (real qurilma) yoki 'demo' (generatsiya qilingan)
+    source: { type: String, enum: ['device', 'demo'], default: 'device' },
   },
   { timestamps: false }
 );

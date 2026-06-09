@@ -47,6 +47,8 @@ const PARAMETERS = ['moisture', 'temperature', 'nitrogen', 'phosphorus', 'potass
 export const ingest = asyncHandler(async (req, res) => {
   const apiKey = req.headers['x-sensor-key'] || req.body.apiKey;
   const { serialNumber, pointId, gpsLat, gpsLng, gpsAccuracy, battery, signal } = req.body;
+  // Manba: demo (generatsiya) yoki device (real qurilma)
+  const source = req.body.source === 'demo' ? 'demo' : 'device';
 
   if (!serialNumber || !apiKey) {
     throw new ApiError(400, 'error.missingFields', 'serialNumber and apiKey are required');
@@ -163,6 +165,8 @@ export const ingest = asyncHandler(async (req, res) => {
       timestamp,
       gpsLat,
       gpsLng,
+      gpsAccuracy: Number.isFinite(Number(gpsAccuracy)) ? Number(gpsAccuracy) : null,
+      source,
       ...readingData,
     });
   } catch (err) {
@@ -240,6 +244,22 @@ export const ingest = asyncHandler(async (req, res) => {
       status:      updatedVisit.status,
       pointsDone:  updatedVisit.pointsDone,
       pointsTotal: updatedVisit.pointsTotal,
+    },
+    // To'liq saqlangan reading — mobile darrov ko'rsатиши/tarixga qo'shishi uchun
+    reading: {
+      id:          reading._id,
+      timestamp:   reading.timestamp,
+      gpsLat:      reading.gpsLat,
+      gpsLng:      reading.gpsLng,
+      gpsAccuracy: reading.gpsAccuracy,
+      source:      reading.source,
+      moisture:    reading.moisture ?? null,
+      temperature: reading.temperature ?? null,
+      nitrogen:    reading.nitrogen ?? null,
+      phosphorus:  reading.phosphorus ?? null,
+      potassium:   reading.potassium ?? null,
+      ph:          reading.ph ?? null,
+      ec:          reading.ec ?? null,
     },
   });
 });
