@@ -8,6 +8,7 @@ import { ApiError, asyncHandler } from '../middleware/error.middleware.js';
 import { distanceMeters, pointInPolygon } from '../utils/geo.js';
 import { env } from '../config/env.js';
 import { serialize } from '../utils/serialize.js';
+import { resetStalePoints } from '../jobs/dailyReset.js';
 
 /**
  * Visit — ishchining hududga tashrifi.
@@ -24,6 +25,11 @@ export const startVisitSchema = Joi.object({
 /** GET /api/visits/my — ishchining biriktirilgan hududlari + active visit */
 export const myAssignments = asyncHandler(async (req, res) => {
   if (req.user.role !== 'ishchi') throw new ApiError(403, 'error.forbidden');
+
+  // LAZY RESET — kechagi (va undan oldingi) o'lchangan nuqtalarni 'pending' qilamiz.
+  // Cron Render free tier'da ishlamaydi (server uxlaydi), shuning uchun ilova
+  // har ochilganda shu yerda tekshiramiz — kunlik qayta o'lchash kafolatlanadi.
+  await resetStalePoints();
 
   // Biriktirilgan hududlar (foydalanuvchi modelida `assignedHududs` massivi)
   const me = await User.findById(req.user._id).populate({

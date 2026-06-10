@@ -96,6 +96,24 @@ app.get('/health', (_req, res) => {
 });
 
 /**
+ * Kunlik reset — tashqi cron (cron-job.org) har kuni O'zbekiston yarim tunida chaqiradi.
+ * Serverni uyg'otib, barcha 'done' nuqtalarni 'pending' qiladi (qayta o'lchash).
+ * GET (cron'lar odatda GET yuboradi). ?key= bilan himoyalangan (CRON_SECRET bo'lsa).
+ */
+app.get('/cron/daily-reset', async (req, res) => {
+  if (process.env.CRON_SECRET && req.query.key !== process.env.CRON_SECRET) {
+    return res.status(401).json({ ok: false, error: 'Invalid key' });
+  }
+  try {
+    const { runDailyReset } = await import('./jobs/dailyReset.js');
+    const count = await runDailyReset();
+    res.json({ ok: true, reset: count, time: new Date().toISOString() });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
  * Vaqtinchalik seed endpoint — Atlas'ni bir martalik to'ldirish uchun.
  * SEED_TOKEN env bo'lsa, faqat shu token bilan ishlaydi.
  * Seed bo'lgach SEED_TOKEN ni Render'dan o'chirib, bu endpoint avtomatik o'chiriladi.

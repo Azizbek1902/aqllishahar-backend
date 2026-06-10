@@ -13,15 +13,38 @@ import { Visit } from '../models/Visit.js';
  * Soat .env orqali sozlanadi: DAILY_RESET_HOUR (0-23). Default 0 = yarim tun.
  */
 
-const RESET_HOUR = Number(process.env.DAILY_RESET_HOUR ?? 0);
+// O'zbekiston UTC+5 (DST yo'q). Reset O'zbekiston yarim tunida bo'lishi kerak.
+const UZ_OFFSET_MS = 5 * 60 * 60 * 1000;
+// Render UTC. Default 19:00 UTC = O'zbekistonda 00:00 (yarim tun).
+const RESET_HOUR = Number(process.env.DAILY_RESET_HOUR ?? 19);
 const CHECK_EVERY_MS = 60 * 1000; // har daqiqa tekshiramiz
 
 let lastResetDay = null; // 'YYYY-MM-DD' — bir kunda ikki marta reset bo'lmasligi uchun
 
+/** O'zbekiston bo'yicha bugungi kun boshlanishi — UTC instant sifatida. */
+export function startOfTodayUz() {
+  const uzNow = new Date(Date.now() + UZ_OFFSET_MS);
+  const uzMidnight = Date.UTC(uzNow.getUTCFullYear(), uzNow.getUTCMonth(), uzNow.getUTCDate(), 0, 0, 0, 0);
+  return new Date(uzMidnight - UZ_OFFSET_MS);
+}
+
+/**
+ * LAZY RESET — eski (kecha va undan oldin o'lchangan) nuqtalarni 'pending' qiladi.
+ * Cron'ga tayanmaydi: ishchi ilovani ochganda chaqiriladi → Render uxlasa ham ishlaydi.
+ * Faqat lastVisitedAt bugundan oldin bo'lganlar (O'zbekiston vaqti) reset bo'ladi.
+ */
+export async function resetStalePoints(filter = {}) {
+  const since = startOfTodayUz();
+  const res = await Point.updateMany(
+    { ...filter, status: 'done', lastVisitedAt: { $ne: null, $lt: since } },
+    { $set: { status: 'pending' } },
+  );
+  return res.modifiedCount;
+}
+
+/** TO'LIQ RESET — barcha 'done' nuqtalarni 'pending' (yarim tun cron / qo'lda). */
 export async function runDailyReset() {
-  // Nuqtalarni qayta o'lchashga tayyorlash
   const pts = await Point.updateMany({ status: 'done' }, { $set: { status: 'pending' } });
-  // Ochiq tashriflarni yopish (kun tugadi)
   const vis = await Visit.updateMany(
     { status: 'active' },
     { $set: { status: 'completed', completedAt: new Date() } },
