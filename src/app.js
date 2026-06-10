@@ -33,6 +33,12 @@ import adminRoutes from './routes/admin.routes.js';
 
 export const app = express();
 
+/* Reverse proxy (Nginx) ortida ishlaydi — X-Forwarded-For dan haqiqiy IP olinadi.
+ * Bu express-rate-limit'ning ERR_ERL_UNEXPECTED_X_FORWARDED_FOR ogohlantirishini
+ * yo'qotadi va foydalanuvchini IP bo'yicha to'g'ri aniqlaydi.
+ * 1 = faqat birinchi proxy (Nginx) ishonchli — IP soxtalashtirishdan himoya. */
+app.set('trust proxy', 1);
+
 /* Helmet — CSP'ni xarita tile serverlariga ruxsat berib sozlaymiz */
 app.use(
   helmet({
